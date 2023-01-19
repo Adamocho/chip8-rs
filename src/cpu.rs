@@ -12,7 +12,7 @@ pub struct Cpu {
     // registers
     pub v: [u8; 16],
     // stack
-    pub stack: u16,
+    pub stack: Vec<u16>,
     // delay timer
     pub dt: u8,
     // sound timer
@@ -21,8 +21,8 @@ pub struct Cpu {
     pub display: Display,
     // keypad
     pub keypad: Keypad,
-    // random number generator - doom implementation (0-255) 
-    pub random: DoomRNG, 
+    // random number generator - doom implementation (0-255)
+    pub random: DoomRNG,
 }
 
 fn read_opcode(memory: [u8; 4096], index: u16) -> u16 {
@@ -37,7 +37,7 @@ impl Cpu {
             pc : 0,
             memory : [0; 4096],
             v : [0; 16],
-            stack : 0,
+            stack : vec![],
             dt: 0,
             st: 0,
             display : Display::new(),
@@ -51,7 +51,7 @@ impl Cpu {
         self.pc = 512;
         self.memory = [0; 4096];
         self.v = [0; 16];
-        self.stack = 0;
+        self.stack = vec![];
         self.dt = 0;
         self.st = 0;
         self.display.cls();
@@ -103,18 +103,100 @@ impl Cpu {
             (0, 0, 0xE, 0) => {
                 self.display.cls();
             }
+            (0, 0, 0xE, 0xE) => {
+                self.pc = match self.stack.pop() {
+                    Some(value) => value,
+                    None => 0,
+                }
+            }
             (0x1, _, _, _) => {
                 self.pc = nnn;
+            }
+            (0x2, _, _, _) => {
+                self.stack.push(self.pc);
+                self.pc = nnn;
+            }
+            (0x3, _, _, _) => {
+                if vx == kk {
+                    self.pc += 2;
+                }
+            }
+            (0x4, _, _, _) => {
+                if vx != kk {
+                    self.pc += 2;
+                }
+            }
+            (0x5, _, _, 0) => {
+                if vx == vy {
+                    self.pc += 2;
+                }
             }
             (0x6, _, _, _) => {
                 self.v[x] = kk;
             }
             (0x7, _, _, _) => {
-                self.v[x] += ((vx as u16 + kk as u16) & 0xFF) as u8;
-                // self.v[x] &= 0xFF;
+                self.v[x] = ((vx as u16 + kk as u16) & 0xFF) as u8;
+            }
+            (0x8, _, _, 0) => {
+                self.v[x] = vy;
+            }
+            (0x8, _, _, 1) => {
+                self.v[x] |= vy;
+            }
+            (0x8, _, _, 2) => {
+                self.v[x] &= vy;
+            }
+            (0x8, _, _, 3) => {
+                self.v[x] ^= vy;
+            }
+            (0x8, _, _, 4) => {
+                if vx as u16 + vy as u16 > 0xFF {
+                    self.v[x] = (vx as u16 + vy as u16 - 0x100) as u8;
+                    self.v[0xF] = 1;
+                } else {
+                    self.v[x] += vy;
+                    self.v[0xF] = 0;
+                }
+            }
+            (0x8, _, _, 5) => {
+                if vx < vy {
+                    self.v[x] = (256 - (vy - vx) as u16) as u8;
+                    self.v[0xF] = 0;
+                } else {
+                    self.v[x] -= vy;
+                    self.v[0xF] = 1;
+                }
+            }
+            (0x8, _, _, 6) => {
+                self.v[0xF] = vx & 0x1;
+                self.v[x] >>= 1;
+            }
+            (0x8, _, _, 7) => {
+                if vy < vx {
+                    self.v[0xF] = 0;
+                    self.v[x] = (vx - vy) ^ 0xFF;
+                } else {
+                    self.v[x] = vy - vx;
+                    self.v[0xF] = 1;
+                }
+            }
+            (0x8, _, _, 0xE) => {
+                self.v[0xF] = vx & 0x80;
+                self.v[x] <<= 1;
+            }
+            (0x9, _, _, 0) => {
+                if vx != vy {
+                    self.pc += 2;
+                }
             }
             (0xA, _, _, _) => {
                 self.i = nnn;
+            }
+            (0xB, _, _, _) => {
+                self.pc = nnn + self.v[0] as u16;
+            }
+            (0xC, _, _, _) => {
+                self.v[x] = self.random.next() & kk;
             }
             (0xD, _, _, _) => {
                 // reset the carry flag beforehand
@@ -130,9 +212,6 @@ impl Cpu {
                     for hoffset in 0..8 {
                         if (sprite & (0b10000000 >> hoffset)) != 0 {
                             self.v[0xF] |= self.display.draw(xcoord, ycoord) as u8;
-
-                            // debug
-                            // println!("Draw sprite: {:#0x} at ({},{})", sprite, xcoord, ycoord);
                         }
                         xcoord += 1;
                         if xcoord >= WIDTH as u8 { break; }
@@ -145,6 +224,44 @@ impl Cpu {
                 }
                 // debug
                 self.display.print_to_console();
+            }
+            (0xE, _, 0x9, 0xE) => {
+            }
+            (0xE, _, 0xA, 0x1) => {
+            }
+            (0xF, _, 0, 0x7) => {
+                self.v[x] = self.dt;
+            }
+            (0xF, _, 0, 0xA) => {
+            }
+            (0xF, _, 0x1, 0x5) => {
+                self.dt = vx;
+            }
+            (0xF, _, 0x1, 0x8) => {
+                self.st = vx;
+            }
+            (0xF, _, 0x1, 0xE) => {
+                self.i += vx as u16;
+            }
+            (0xF, _, 0x2, 0x9) => {
+                self.i = (vx as u16 & 0xF) * 5;
+            }
+            (0xF, _, 0x3, 0x3) => {
+                self.memory[self.i as usize] = vx / 100;
+                self.memory[(self.i + 1) as usize] = (vx / 10) % 10;
+                self.memory[(self.i + 2) as usize] = vx % 10;
+            }
+            (0xF, _, 0x5, 0x5) => {
+                println!("self i = {}, x = {}", self.i, x);
+                for offset in 0..=x as usize {
+                    self.memory[self.i as usize + offset] = self.v[offset];
+                }
+            }
+            (0xF, _, 0x6, 0x5) => {
+                println!("self i = {}, x = {}", self.i, x);
+                for offset in 0..=x as usize {
+                    self.v[offset] = self.memory[self.i as usize + offset];
+                }
             }
             (_, _, _, _) => ()
         }
