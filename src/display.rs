@@ -6,7 +6,7 @@ pub struct Display {
 }
 
 impl Display {
-    pub fn new() -> Display {
+    pub fn new() -> Self {
         Display {
             memory : [false; WIDTH * HEIGHT]
         }
@@ -24,9 +24,7 @@ impl Display {
     }
     
     pub fn print_to_console(&mut self) {
-        // let on: char = '▮';
         let on: char = '#';
-        // let off: char = '▯';
         let off: char = ' ';
 
         for y in 0..HEIGHT {

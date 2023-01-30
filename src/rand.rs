@@ -4,17 +4,17 @@ pub struct DoomRNG {
 }
 
 impl DoomRNG {
-   pub fn new() -> DoomRNG {
-       DoomRNG {
-           rngtable : RNG_TABLE,
-           index : 0
-       }
-   }
+    pub fn new() -> Self {
+        DoomRNG {
+            rngtable : RNG_TABLE,
+            index : 0
+        }
+    }
    
-   pub fn next(&mut self) -> u8 {
-       self.index = (self.index + 1) & 0xFF;
-       self.rngtable[self.index as usize]
-   }
+    pub fn next(&mut self) -> u8 {
+        self.index = (self.index + 1) % 0xFF;
+        self.rngtable[self.index as usize]
+    }
 }
 
 const RNG_TABLE: [u8; 256] = [

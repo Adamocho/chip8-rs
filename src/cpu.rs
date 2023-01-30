@@ -21,7 +21,7 @@ pub struct Cpu {
     pub display: Display,
     // keypad
     pub keypad: Keypad,
-    // random number generator - doom implementation (0-255)
+    // random number generator - DOOM implementation
     pub random: DoomRNG,
 }
 
@@ -31,7 +31,7 @@ fn read_opcode(memory: [u8; 4096], index: u16) -> u16 {
 }
 
 impl Cpu {
-    pub fn new() -> Cpu {
+    pub fn new() -> Self {
         Cpu {
             i : 0,
             pc : 0,
@@ -55,7 +55,6 @@ impl Cpu {
         self.dt = 0;
         self.st = 0;
         self.display.cls();
-        self.keypad.reset();
 
         // load the font
         for i in 0..80 {
@@ -65,24 +64,18 @@ impl Cpu {
 
     pub fn load_program(&mut self, program: Vec<u8>) {
         for i in 0..program.len(){
-            // start at memory address 512 - specification
             self.memory[i + 0x200] = program[i];
         }
     }
 
     pub fn execute_cycle(&mut self) {
-        // read next opcode
         let opcode = read_opcode(self.memory, self.pc);
-
-        // increment the program counter
         self.pc += 2;
-
         self.process_opcode(opcode);
     }
 
     fn process_opcode(&mut self, opcode: u16)  {
 
-        // break into various parameters
         let x = ((opcode & 0x0F00) >> 8) as usize;
         let y = ((opcode & 0x00F0) >> 4) as usize;
         let vx = self.v[x];
@@ -96,8 +89,6 @@ impl Cpu {
         let op_2 = (opcode & 0x0F00) >> 8; 
         let op_3 = (opcode & 0x00F0) >> 4; 
         let op_4 = opcode & 0x000F; 
-
-        // println!("{:#06x} -> {} {} {} {}", opcode, op_1, op_2, op_3, op_4);
 
         match (op_1, op_2, op_3, op_4) {
             (0, 0, 0xE, 0) => {
@@ -199,14 +190,11 @@ impl Cpu {
                 self.v[x] = self.random.next() & kk;
             }
             (0xD, _, _, _) => {
-                // reset the carry flag beforehand
                 self.v[0xF] = 0;
 
-                // wrap around if exceeds screen borders
                 let mut xcoord = vx % WIDTH as u8;
                 let mut ycoord = vy % HEIGHT as u8;
 
-                // draw sprites on display
                 for voffset in 0..n {
                     let sprite: u8 = self.memory[(self.i + voffset) as usize];
                     for hoffset in 0..8 {
@@ -216,23 +204,28 @@ impl Cpu {
                         xcoord += 1;
                         if xcoord >= WIDTH as u8 { break; }
                     }
-                    // reset xcoord for next iteration
                     xcoord = vx % WIDTH as u8;
                     
                     ycoord += 1;
                     if ycoord >= HEIGHT as u8 { break; }
                 }
-                // debug
                 self.display.print_to_console();
             }
             (0xE, _, 0x9, 0xE) => {
+                if self.keypad.get_key_pressed().unwrap() == vx {
+                    self.pc += 2;
+                }
             }
             (0xE, _, 0xA, 0x1) => {
+                if self.keypad.get_key_pressed().unwrap() != vx {
+                    self.pc += 2;
+                }
             }
             (0xF, _, 0, 0x7) => {
                 self.v[x] = self.dt;
             }
             (0xF, _, 0, 0xA) => {
+                self.v[x] = self.keypad.await_key_press();
             }
             (0xF, _, 0x1, 0x5) => {
                 self.dt = vx;
@@ -252,13 +245,11 @@ impl Cpu {
                 self.memory[(self.i + 2) as usize] = vx % 10;
             }
             (0xF, _, 0x5, 0x5) => {
-                println!("self i = {}, x = {}", self.i, x);
                 for offset in 0..=x as usize {
                     self.memory[self.i as usize + offset] = self.v[offset];
                 }
             }
             (0xF, _, 0x6, 0x5) => {
-                println!("self i = {}, x = {}", self.i, x);
                 for offset in 0..=x as usize {
                     self.v[offset] = self.memory[self.i as usize + offset];
                 }
@@ -270,15 +261,68 @@ impl Cpu {
 
 #[cfg(test)]
 mod tests {
-    use super::Cpu;
+    use super::{Cpu, read_opcode};
     
     #[test]
-    fn it_works() {
+    fn it_resets() {
         let mut cpu = Cpu::new();
-        cpu.pc = 1001;
+        cpu.i = 2001;
+        cpu.pc = 2002;
+        cpu.memory = [4; 4096];
+        cpu.v = [1; 16];
+        cpu.stack = vec![1, 2, 3];
+        cpu.dt = 120;
+        cpu.st = 120;
+        cpu.reset();
 
-        cpu.process_opcode(0x2ABC);
-        assert_eq!(1, 1, "Hello it works");
-        todo!("Make real tests");
+        assert_eq!(cpu.i, 0, "i does not reset");
+        assert_eq!(cpu.pc, 512, "pc does not reset");
+        assert_eq!(cpu.memory[80..], [0; 4096][80..], "memory does not reset");
+        assert_eq!(cpu.v, [0; 16], "register does not reset");
+        assert_eq!(cpu.stack, vec![], "stack does not reset");
+        assert_eq!(cpu.dt, 0, "delay timer does not reset");
+        assert_eq!(cpu.st, 0, "sound timer does not reset");
+    }
+
+    #[test]
+    fn it_increments() {
+        let mut cpu = Cpu::new();
+        cpu.reset();
+        cpu.execute_cycle();
+        cpu.execute_cycle();
+        cpu.execute_cycle();
+        cpu.execute_cycle();
+
+        assert_eq!(cpu.pc, 512 + 8, "pc does not increment");
+    }
+
+    #[test]
+    fn it_reads_opcode() {
+        let mut cpu = Cpu::new();
+        cpu.reset();
+
+        let mut opcode = read_opcode(cpu.memory, 0);
+        assert_eq!(opcode, 0xF090, "wrong opcode read");
+
+        opcode = read_opcode(cpu.memory, 81);
+        assert_eq!(opcode, 0x0000, "wrong opcode read");
+
+        cpu.memory[202] = 0xFA;
+        cpu.memory[203] = 0x02;
+        opcode = read_opcode(cpu.memory, 202);
+        assert_eq!(opcode, 0xFA02, "wrong opcode read");
+    }
+
+    #[test]
+    fn it_loads_program() {
+        let mut cpu = Cpu::new();
+        cpu.reset();
+
+        cpu.load_program(vec![0x12, 0x24, 0xFD, 0x0A]);
+
+        assert_eq!(cpu.memory[0x200], 0x12, "program not loaded");
+        assert_eq!(cpu.memory[0x200 + 1], 0x24, "program not loaded");
+        assert_eq!(cpu.memory[0x200 + 2], 0xFD, "program not loaded");
+        assert_eq!(cpu.memory[0x200 + 3], 0x0A, "program not loaded");
     }
 }
