@@ -1,3 +1,5 @@
+use crossterm::style::{Stylize, StyledContent};
+
 use crate::display::{Display, FONT_SET, WIDTH, HEIGHT};
 use crate::keypad::Keypad;
 use crate::rand::DoomRNG;
@@ -72,6 +74,10 @@ impl Cpu {
         let opcode = read_opcode(self.memory, self.pc);
         self.pc += 2;
         self.process_opcode(opcode);
+
+        // decrease both timers
+        if self.st > 0 { self.st >>= 1 };
+        if self.dt > 0 { self.dt >>= 1 };
     }
 
     fn process_opcode(&mut self, opcode: u16)  {
@@ -85,60 +91,75 @@ impl Cpu {
         let nnn = (opcode & 0x0FFF) as u16;
 
         // break up into nibbles
-        let op_1 = (opcode & 0xF000) >> 12; 
-        let op_2 = (opcode & 0x0F00) >> 8; 
-        let op_3 = (opcode & 0x00F0) >> 4; 
-        let op_4 = opcode & 0x000F; 
+        let op_1 = (opcode & 0xF000) >> 12;
+        let op_2 = (opcode & 0x0F00) >> 8;
+        let op_3 = (opcode & 0x00F0) >> 4;
+        let op_4 = opcode & 0x000F;
+
+        let mut operation_type = "Unknown";
 
         match (op_1, op_2, op_3, op_4) {
             (0, 0, 0xE, 0) => {
                 self.display.cls();
+                operation_type = "Display";
             }
             (0, 0, 0xE, 0xE) => {
                 self.pc = match self.stack.pop() {
                     Some(value) => value,
-                    None => 0,
-                }
+                    None => 512,
+                };
+                operation_type = "Flow";
             }
             (0x1, _, _, _) => {
                 self.pc = nnn;
+                operation_type = "Flow";
             }
             (0x2, _, _, _) => {
                 self.stack.push(self.pc);
                 self.pc = nnn;
+                operation_type = "Flow";
             }
             (0x3, _, _, _) => {
                 if vx == kk {
                     self.pc += 2;
                 }
+                operation_type = "Cond";
             }
             (0x4, _, _, _) => {
                 if vx != kk {
                     self.pc += 2;
                 }
+                operation_type = "Cond";
             }
             (0x5, _, _, 0) => {
                 if vx == vy {
                     self.pc += 2;
                 }
+                operation_type = "Cond";
             }
             (0x6, _, _, _) => {
                 self.v[x] = kk;
+                operation_type = "Const";
             }
             (0x7, _, _, _) => {
                 self.v[x] = ((vx as u16 + kk as u16) & 0xFF) as u8;
+                operation_type = "Const";
             }
             (0x8, _, _, 0) => {
                 self.v[x] = vy;
+                operation_type = "Assig";
             }
             (0x8, _, _, 1) => {
                 self.v[x] |= vy;
+                operation_type = "BitOp";
             }
             (0x8, _, _, 2) => {
                 self.v[x] &= vy;
+                operation_type = "BitOp";
             }
             (0x8, _, _, 3) => {
                 self.v[x] ^= vy;
+                operation_type = "BitOp";
             }
             (0x8, _, _, 4) => {
                 if vx as u16 + vy as u16 > 0xFF {
@@ -148,6 +169,7 @@ impl Cpu {
                     self.v[x] += vy;
                     self.v[0xF] = 0;
                 }
+                operation_type = "Math";
             }
             (0x8, _, _, 5) => {
                 if vx < vy {
@@ -157,10 +179,12 @@ impl Cpu {
                     self.v[x] -= vy;
                     self.v[0xF] = 1;
                 }
+                operation_type = "Math";
             }
             (0x8, _, _, 6) => {
                 self.v[0xF] = vx & 0x1;
                 self.v[x] >>= 1;
+                operation_type = "BitOp";
             }
             (0x8, _, _, 7) => {
                 if vy < vx {
@@ -170,24 +194,30 @@ impl Cpu {
                     self.v[x] = vy - vx;
                     self.v[0xF] = 1;
                 }
+                operation_type = "Math";
             }
             (0x8, _, _, 0xE) => {
                 self.v[0xF] = vx & 0x80;
                 self.v[x] <<= 1;
+                operation_type = "BitOp";
             }
             (0x9, _, _, 0) => {
                 if vx != vy {
                     self.pc += 2;
                 }
+                operation_type = "Cond";
             }
             (0xA, _, _, _) => {
                 self.i = nnn;
+                operation_type = "MEM";
             }
             (0xB, _, _, _) => {
                 self.pc = nnn + self.v[0] as u16;
+                operation_type = "Flow";
             }
             (0xC, _, _, _) => {
                 self.v[x] = self.random.next() & kk;
+                operation_type = "Rand";
             }
             (0xD, _, _, _) => {
                 self.v[0xF] = 0;
@@ -210,51 +240,87 @@ impl Cpu {
                     if ycoord >= HEIGHT as u8 { break; }
                 }
                 self.display.print_to_console();
+                operation_type = "Display";
             }
             (0xE, _, 0x9, 0xE) => {
                 if self.keypad.get_key_pressed().unwrap() == vx {
                     self.pc += 2;
                 }
+                operation_type = "KeyOp";
             }
             (0xE, _, 0xA, 0x1) => {
                 if self.keypad.get_key_pressed().unwrap() != vx {
                     self.pc += 2;
                 }
+                operation_type = "KeyOp";
             }
             (0xF, _, 0, 0x7) => {
                 self.v[x] = self.dt;
+                operation_type = "Timer";
             }
             (0xF, _, 0, 0xA) => {
                 self.v[x] = self.keypad.await_key_press();
+                operation_type = "KeyOp";
             }
             (0xF, _, 0x1, 0x5) => {
                 self.dt = vx;
+                operation_type = "Timer";
             }
             (0xF, _, 0x1, 0x8) => {
                 self.st = vx;
+                operation_type = "Sound";
             }
             (0xF, _, 0x1, 0xE) => {
                 self.i += vx as u16;
+                operation_type = "MEM";
             }
             (0xF, _, 0x2, 0x9) => {
                 self.i = (vx as u16 & 0xF) * 5;
+                operation_type = "MEM";
             }
             (0xF, _, 0x3, 0x3) => {
                 self.memory[self.i as usize] = vx / 100;
                 self.memory[(self.i + 1) as usize] = (vx / 10) % 10;
                 self.memory[(self.i + 2) as usize] = vx % 10;
+                operation_type = "BCD";
             }
             (0xF, _, 0x5, 0x5) => {
                 for offset in 0..=x as usize {
                     self.memory[self.i as usize + offset] = self.v[offset];
                 }
+                operation_type = "MEM";
             }
             (0xF, _, 0x6, 0x5) => {
                 for offset in 0..=x as usize {
                     self.v[offset] = self.memory[self.i as usize + offset];
                 }
+                operation_type = "MEM";
             }
             (_, _, _, _) => ()
+        }
+
+        if cfg!(feature = "debug") {
+            let opcode_styled: StyledContent<String>;
+            let optype_styled: StyledContent<String>;
+            let cpu_styled: StyledContent<String>;
+
+            if operation_type == "Unknown" {
+                opcode_styled = crossterm::style::style(format!("{:04X}", opcode)).with(crossterm::style::Color::Red);
+                optype_styled = crossterm::style::style(format!("{}", operation_type)).with(crossterm::style::Color::Red);
+            } else {
+                opcode_styled = crossterm::style::style(format!("{:04X}", opcode)).with(crossterm::style::Color::Green);
+                optype_styled = crossterm::style::style(format!("{}", operation_type)).with(crossterm::style::Color::Green);
+            }
+
+            cpu_styled = crossterm::style::style(format!("\ti={:?},\n\tpc={:?},\n\tv={:?},\n\tstack={:?},\n\tdt={:?},\n\tst={:?}",
+            self.i, self.pc, self.v, self.stack, self.dt, self.st)).with(crossterm::style::Color::DarkYellow);
+
+            println!("Opcode={}, Type={} ",
+            opcode_styled,
+            optype_styled);
+            println!("Cpu:\n{}", cpu_styled);
+
+            let _ = std::io::stdin().read_line(&mut String::new());
         }
     }
 }
