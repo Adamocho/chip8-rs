@@ -65,7 +65,9 @@ fn main() {
     loop {
         cpu.execute_cycle();
 
-        // simulate 60hz
-        std::thread::sleep(Duration::new(0, 16_000_000));
+        if !cfg!(feature = "fast") {
+            // simulate 60hz
+            std::thread::sleep(Duration::new(0, 16_000_000));
+        }
     }
 }
