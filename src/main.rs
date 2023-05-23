@@ -42,17 +42,15 @@ fn main() {
     if cfg!(feature = "debug") {
         let debug_message = style("\nROM debug:\n").with(crossterm::style::Color::Yellow);
         let mut counter_message: StyledContent<String>;
-        let mut counter = 0;
 
         print!("{}", debug_message);
 
-        for value in &rom {
+        for (counter, value) in rom.iter().enumerate() {
             if counter % 10 == 0 {
                 counter_message = style(format!("\n{:#03}\t", counter)).with(crossterm::style::Color::Red);
                 print!("{}", counter_message);
             }
             print!("{:#04x} ", value);
-            counter += 1;
         }
         println!("\nConfirm to continue...");
         let _ = io::stdin().read_line(&mut String::new());

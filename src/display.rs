@@ -5,6 +5,12 @@ pub struct Display {
     pub memory: [bool; WIDTH * HEIGHT],
 }
 
+impl Default for Display {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Display {
     pub fn new() -> Self {
         Display {

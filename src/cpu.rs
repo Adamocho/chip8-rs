@@ -32,6 +32,12 @@ fn read_opcode(memory: [u8; 4096], index: u16) -> u16 {
         memory[(index + 1) as usize] as u16
 }
 
+impl Default for Cpu {
+    fn default() -> Self {
+        Cpu::new()
+    }
+}
+
 impl Cpu {
     pub fn new() -> Self {
         Cpu {
@@ -59,15 +65,13 @@ impl Cpu {
         self.display.cls();
 
         // load the font
-        for i in 0..80 {
-            self.memory[i] = FONT_SET[i];
+        for (i, item) in FONT_SET.iter().enumerate() {
+            self.memory[i] = *item;
         }
     } 
 
     pub fn load_program(&mut self, program: Vec<u8>) {
-        for i in 0..program.len(){
-            self.memory[i + 0x200] = program[i];
-        }
+        self.memory[512..(program.len() + 512)].copy_from_slice(&program[..]);
     }
 
     pub fn execute_cycle(&mut self) {
@@ -88,7 +92,7 @@ impl Cpu {
         let vy = self.v[y];
         let n = opcode & 0x000F;
         let kk = (opcode & 0x00FF) as u8;
-        let nnn = (opcode & 0x0FFF) as u16;
+        let nnn = opcode & 0x0FFF;
 
         // break up into nibbles
         let op_1 = (opcode & 0xF000) >> 12;
@@ -104,10 +108,7 @@ impl Cpu {
                 operation_type = "Display";
             }
             (0, 0, 0xE, 0xE) => {
-                self.pc = match self.stack.pop() {
-                    Some(value) => value,
-                    None => 512,
-                };
+                self.pc = self.stack.pop().unwrap_or(512);
                 operation_type = "Flow";
             }
             (0x1, _, _, _) => {
@@ -216,7 +217,7 @@ impl Cpu {
                 operation_type = "Flow";
             }
             (0xC, _, _, _) => {
-                self.v[x] = self.random.next() & kk;
+                self.v[x] = self.random.change() & kk;
                 operation_type = "Rand";
             }
             (0xD, _, _, _) => {
@@ -285,13 +286,13 @@ impl Cpu {
                 operation_type = "BCD";
             }
             (0xF, _, 0x5, 0x5) => {
-                for offset in 0..=x as usize {
+                for offset in 0..=x {
                     self.memory[self.i as usize + offset] = self.v[offset];
                 }
                 operation_type = "MEM";
             }
             (0xF, _, 0x6, 0x5) => {
-                for offset in 0..=x as usize {
+                for offset in 0..=x {
                     self.v[offset] = self.memory[self.i as usize + offset];
                 }
                 operation_type = "MEM";
@@ -302,18 +303,17 @@ impl Cpu {
         if cfg!(feature = "debug") {
             let opcode_styled: StyledContent<String>;
             let optype_styled: StyledContent<String>;
-            let cpu_styled: StyledContent<String>;
+
+            let cpu_styled: StyledContent<String> = crossterm::style::style(format!("\ti={:?},\n\tpc={:?},\n\tv={:?},\n\tstack={:?},\n\tdt={:?},\n\tst={:?}",
+            self.i, self.pc, self.v, self.stack, self.dt, self.st)).with(crossterm::style::Color::DarkYellow);
 
             if operation_type == "Unknown" {
                 opcode_styled = crossterm::style::style(format!("{:04X}", opcode)).with(crossterm::style::Color::Red);
-                optype_styled = crossterm::style::style(format!("{}", operation_type)).with(crossterm::style::Color::Red);
+                optype_styled = crossterm::style::style(operation_type.to_string()).with(crossterm::style::Color::Red);
             } else {
                 opcode_styled = crossterm::style::style(format!("{:04X}", opcode)).with(crossterm::style::Color::Green);
-                optype_styled = crossterm::style::style(format!("{}", operation_type)).with(crossterm::style::Color::Green);
+                optype_styled = crossterm::style::style(operation_type.to_string()).with(crossterm::style::Color::Green);
             }
-
-            cpu_styled = crossterm::style::style(format!("\ti={:?},\n\tpc={:?},\n\tv={:?},\n\tstack={:?},\n\tdt={:?},\n\tst={:?}",
-            self.i, self.pc, self.v, self.stack, self.dt, self.st)).with(crossterm::style::Color::DarkYellow);
 
             println!("Opcode={}, Type={} ",
             opcode_styled,

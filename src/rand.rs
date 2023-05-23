@@ -3,6 +3,12 @@ pub struct DoomRNG {
     index: u8,
 }
 
+impl Default for DoomRNG {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DoomRNG {
     pub fn new() -> Self {
         DoomRNG {
@@ -11,7 +17,7 @@ impl DoomRNG {
         }
     }
    
-    pub fn next(&mut self) -> u8 {
+    pub fn change(&mut self) -> u8 {
         self.index = (self.index + 1) % 0xFF;
         self.rngtable[self.index as usize]
     }
