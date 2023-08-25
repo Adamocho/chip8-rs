@@ -6,6 +6,7 @@
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Uninstalling](#uninstalling)
+- [Getting ROMs](#getting-roms)
 - [Bonus features](#bonus-features)
     - [Debug](#debug)
     - [Fast](#fast)
@@ -47,6 +48,18 @@ Simply delete the project's directory
 ```bash
 rm -r chip8-rust
 ```
+
+## Getting ROMs
+
+Except test ROMs, which are `ibm_logo.ch8` and `test_opcode.ch8`, this project does not provide any games and demos.
+
+Should you wish to run other **.ch8** ROMs, I leave links to them:
+
+- *https://github.com/kripod/chip8-roms* - github repo of roms
+- *https://archive.org/details/chip-8-games* - you can guess
+- *https://github.com/tobiasvl/awesome-chip-8* - another repo
+
+The internet is full of ROMs worth trying out. I shan't take the creators' credits.
 
 ## Bonus features 
 
