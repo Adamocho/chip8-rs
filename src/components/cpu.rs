@@ -1,8 +1,8 @@
 use crossterm::style::{Stylize, StyledContent};
 
-use crate::display::{Display, FONT_SET, WIDTH, HEIGHT};
-use crate::keypad::Keypad;
-use crate::rand::DoomRNG;
+use super::display::{Display, FONT_SET, WIDTH, HEIGHT};
+use super::keypad::Keypad;
+use super::rand::DoomRNG;
 
 pub struct Cpu {
     // index register

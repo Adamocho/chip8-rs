@@ -1,8 +1,10 @@
+mod components;
+use crate::components::cpu::Cpu;
 use std::{time::Duration, io};
-use chip_8::cpu::Cpu;
 use crossterm::style::{style, Stylize, StyledContent};
 use std::fs;
 use inquire::{Select, ui::{RenderConfig, Color, StyleSheet, Styled, Attributes}};
+
 
 fn main() {
     let dir_path = "roms/";

@@ -24,10 +24,6 @@ impl Keypad {
         }
     }
 
-    pub fn get_keys(&self) -> Vec<char> {
-        self.keys.to_vec()
-    }
-
     pub fn await_key_press(&self) -> u8 {
         let mut _stdout = stdout();
         enable_raw_mode().unwrap();
