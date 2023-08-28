@@ -1,7 +1,11 @@
 mod components;
 use crate::components::cpu::Cpu;
-use std::{time::Duration, io};
-use crossterm::style::{style, Stylize, StyledContent};
+use std::{time::Duration, io::{self, Write}};
+use crossterm::{
+    style::{style, Stylize, StyledContent}, 
+    terminal::{self, LeaveAlternateScreen, EnterAlternateScreen, EnableLineWrap}, 
+    cursor, 
+    event::{KeyCode, self, Event, KeyEvent, KeyModifiers}};
 use std::fs;
 use inquire::{Select, ui::{RenderConfig, Color, StyleSheet, Styled, Attributes}};
 
@@ -58,9 +62,19 @@ fn main() {
         let _ = io::stdin().read_line(&mut String::new());
     }
 
+    // Get CPU ready
     let mut cpu = Cpu::new();
     cpu.reset();
     cpu.load_program(rom);
+
+    // main game loop inside an alternate screen
+    terminal::enable_raw_mode().unwrap();
+    let mut stdout = io::stdout();
+    crossterm::execute!(
+        stdout, 
+        EnterAlternateScreen,
+        EnableLineWrap,
+    ).unwrap();
 
     loop {
         cpu.execute_cycle();
@@ -69,5 +83,20 @@ fn main() {
             // simulate 60hz
             std::thread::sleep(Duration::new(0, 16_000_000));
         }
+
+        // Check for Ctrl-C
+        if let Event::Key(KeyEvent { code: KeyCode::Char('c'), modifiers: KeyModifiers::CONTROL, .. }) = event::read().unwrap() {
+            break
+        }
     }
+    
+    // Need to flush stdout. Doesn't work without it.
+    stdout.flush().unwrap();
+
+    // Return to normal terminal
+    terminal::disable_raw_mode().unwrap();
+    crossterm::execute!(
+        stdout,
+        LeaveAlternateScreen,
+    ).unwrap();
 }
