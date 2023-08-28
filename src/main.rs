@@ -1,6 +1,6 @@
 mod components;
 use crate::components::cpu::Cpu;
-use std::{time::Duration, io::{self, Write}};
+use std::{time::Duration, io};
 use crossterm::{
     style::{style, Stylize, StyledContent}, 
     terminal::{self, LeaveAlternateScreen, EnterAlternateScreen, EnableLineWrap}, 
@@ -84,13 +84,12 @@ fn main() {
         }
 
         // Check for Ctrl-C
-        if let Event::Key(KeyEvent { code: KeyCode::Char('c'), modifiers: KeyModifiers::CONTROL, .. }) = event::read().unwrap() {
-            break
+        if event::poll(Duration::from_secs(0)).unwrap() {
+            if let Event::Key(KeyEvent { code: KeyCode::Char('c'), modifiers: KeyModifiers::CONTROL, .. }) = event::read().unwrap() {
+                break
+            }
         }
     }
-    
-    // Need to flush stdout. Doesn't work without it.
-    stdout.flush().unwrap();
 
     // Return to normal terminal
     terminal::disable_raw_mode().unwrap();

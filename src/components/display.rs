@@ -1,3 +1,7 @@
+use std::io::Write;
+
+use crossterm::{style::Print, cursor::MoveTo };
+
 pub const WIDTH: usize = 64;
 pub const HEIGHT: usize = 32;
 
@@ -30,16 +34,23 @@ impl Display {
     }
     
     pub fn print_to_console(&mut self) {
-        let on: char = '#';
+        let on: char = '█';
         let off: char = ' ';
+
+        let mut stdout = std::io::stdout();
 
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 let pixel: char = if self.memory[y * WIDTH + x] {on} else {off};
-                print!("{}", pixel);
+                crossterm::queue!(stdout,
+                    MoveTo(x as u16, y as u16),
+                    Print(pixel),
+                ).unwrap();
             }
-            println!();
-        } 
+        }
+
+        // Make changes visible on the screen
+        stdout.flush().unwrap();
     }
 }
 

@@ -1,5 +1,6 @@
 use std::io::stdout;
-use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers};
+use std::time::Duration;
+use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers, poll};
 use crossterm::terminal::{enable_raw_mode, self};
 
 pub struct Keypad {
@@ -43,13 +44,13 @@ impl Keypad {
             enable_raw_mode().unwrap();
         }
 
-        if let Event::Key(KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::NONE, .. }) = read().unwrap() {
-            if self.keys.contains(&c) {
-                return Some(self.keys.iter().position(|ch| *ch == c).unwrap() as u8 + 1)
-            }
-            Some(0)
-        } else {
-            None
-        }
+        if poll(Duration::from_secs(0)).unwrap() {
+            if let Event::Key(KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::NONE, .. }) = read().unwrap() {
+                if self.keys.contains(&c) {
+                    return Some(self.keys.iter().position(|ch| *ch == c).unwrap() as u8 + 1)
+                }
+                Some(0)
+            } else { None }
+        } else { None }
     }
 }
