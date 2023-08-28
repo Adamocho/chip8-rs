@@ -1,6 +1,6 @@
 use std::io::stdout;
-use crossterm::event::{read, Event, KeyCode};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::terminal::{enable_raw_mode, self};
 
 pub struct Keypad {
     keys: Vec<char>,
@@ -26,34 +26,30 @@ impl Keypad {
 
     pub fn await_key_press(&self) -> u8 {
         let mut _stdout = stdout();
-        enable_raw_mode().unwrap();
+        if !terminal::is_raw_mode_enabled().unwrap() {
+            enable_raw_mode().unwrap();
+        }
+
         loop {
-            if let Event::Key(event) = read().unwrap() { 
-                if let KeyCode::Char(c) = event.code {
-                    disable_raw_mode().unwrap();
-                    return c as u8
-                }
+            if let Event::Key(KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::NONE, .. }) = read().unwrap() {
+                return c as u8;
             }
         }
     }
 
     pub fn get_key_pressed(&self) -> Option<u8> {
         let mut _stdout = stdout();
-        enable_raw_mode().unwrap();
-        match read().unwrap() {
-            Event::Key(event) => match event.code {
-                KeyCode::Char(c) => {
-                    disable_raw_mode().unwrap();
-                    if self.keys.contains(&c) {
-                        return Some(self.keys.iter().position(|ch| *ch == c).unwrap() as u8 + 1)
-                    }
-                    Some(0)
-                },
-                KeyCode::Enter => { disable_raw_mode().unwrap(); println!("Enter"); Some(0) },
-                KeyCode::Esc => { disable_raw_mode().unwrap(); println!("Exiting.."); None },
-                _ => { disable_raw_mode().unwrap(); Some(0) }
-            },
-            _ => { disable_raw_mode().unwrap(); None }
+        if !terminal::is_raw_mode_enabled().unwrap() {
+            enable_raw_mode().unwrap();
+        }
+
+        if let Event::Key(KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::NONE, .. }) = read().unwrap() {
+            if self.keys.contains(&c) {
+                return Some(self.keys.iter().position(|ch| *ch == c).unwrap() as u8 + 1)
+            }
+            Some(0)
+        } else {
+            None
         }
     }
 }

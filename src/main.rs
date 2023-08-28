@@ -4,7 +4,6 @@ use std::{time::Duration, io::{self, Write}};
 use crossterm::{
     style::{style, Stylize, StyledContent}, 
     terminal::{self, LeaveAlternateScreen, EnterAlternateScreen, EnableLineWrap}, 
-    cursor, 
     event::{KeyCode, self, Event, KeyEvent, KeyModifiers}};
 use std::fs;
 use inquire::{Select, ui::{RenderConfig, Color, StyleSheet, Styled, Attributes}};
