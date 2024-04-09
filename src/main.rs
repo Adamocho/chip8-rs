@@ -44,6 +44,12 @@ fn main() {
     let rom = fs::read(String::from(dir_path) + file_path)
         .expect("Cannot read the file: \"{path}\"");
 
+
+    if cfg!(all(feature = "debug", feature = "alternate-screen")) {
+        eprintln!("Both `debug` and `alternate-screen` are on! The debug won't be shown in the alternate window due to bugs.");
+        println!("You probably want to run cargo with `--no-default-features` flag.");
+    }
+
     if cfg!(feature = "debug") {
         let debug_message = style("\nROM debug:\n").with(crossterm::style::Color::Yellow);
         let mut counter_message: StyledContent<String>;
@@ -66,14 +72,18 @@ fn main() {
     cpu.reset();
     cpu.load_program(rom);
 
+
+    let mut _stdout = io::stdout();
+
     // main game loop inside an alternate screen
-    terminal::enable_raw_mode().unwrap();
-    let mut stdout = io::stdout();
-    crossterm::execute!(
-        stdout, 
-        EnterAlternateScreen,
-        EnableLineWrap,
-    ).unwrap();
+    if cfg!(feature = "alternate-screen") {
+        terminal::enable_raw_mode().unwrap();
+        crossterm::execute!(
+            _stdout, 
+            EnterAlternateScreen,
+            EnableLineWrap,
+        ).unwrap();
+    }
 
     loop {
         cpu.execute_cycle();
@@ -92,9 +102,11 @@ fn main() {
     }
 
     // Return to normal terminal
-    terminal::disable_raw_mode().unwrap();
-    crossterm::execute!(
-        stdout,
-        LeaveAlternateScreen,
-    ).unwrap();
+    if cfg!(feature = "alternate-screen") {
+        terminal::disable_raw_mode().unwrap();
+        crossterm::execute!(
+            _stdout,
+            LeaveAlternateScreen,
+        ).unwrap();
+    }
 }

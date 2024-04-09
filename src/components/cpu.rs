@@ -1,4 +1,7 @@
-use crossterm::style::{Stylize, StyledContent};
+use std::io::Write;
+
+use crossterm::cursor::MoveTo;
+use crossterm::style::{PrintStyledContent, StyledContent, Stylize};
 
 use super::display::{Display, FONT_SET, WIDTH, HEIGHT};
 use super::keypad::Keypad;
@@ -300,7 +303,7 @@ impl Cpu {
             (_, _, _, _) => ()
         }
 
-        if cfg!(feature = "debug") {
+        if cfg!(all(feature = "debug", not(feature = "alternate-screen"))) {
             let opcode_styled: StyledContent<String>;
             let optype_styled: StyledContent<String>;
 
@@ -314,12 +317,19 @@ impl Cpu {
                 opcode_styled = crossterm::style::style(format!("{:04X}", opcode)).with(crossterm::style::Color::Green);
                 optype_styled = crossterm::style::style(operation_type.to_string()).with(crossterm::style::Color::Green);
             }
-
-            println!("Opcode={}, Type={} ",
-            opcode_styled,
-            optype_styled);
-            println!("Cpu:\n{}", cpu_styled);
-
+                
+            
+            let mut stdout = std::io::stdout();
+            
+            crossterm::queue!(stdout,
+                MoveTo(0, 60),
+                PrintStyledContent(opcode_styled),
+                PrintStyledContent(optype_styled),
+                PrintStyledContent(cpu_styled),
+            ).unwrap();
+            stdout.flush().unwrap();
+            
+            // Await key press
             let _ = std::io::stdin().read_line(&mut String::new());
         }
     }
