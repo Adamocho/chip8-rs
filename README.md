@@ -55,9 +55,9 @@ Except test ROMs, which are `ibm_logo.ch8` and `test_opcode.ch8`, this project d
 
 Should you wish to run other **.ch8** ROMs, I leave links to them:
 
-- *https://github.com/kripod/chip8-roms* - github repo of roms
+- *https://github.com/kripod/chip8-roms* - kripod's repo of roms
 - *https://archive.org/details/chip-8-games* - you can guess
-- *https://github.com/tobiasvl/awesome-chip-8* - another repo
+- *https://github.com/tobiasvl/awesome-chip-8* - another repo (by tobiasvl)
 
 The internet is full of ROMs worth trying out. I shan't take the creators' credits.
 
@@ -81,6 +81,9 @@ Enabling the feature:
 - shows loaded ROM in *HEX*;
 - executes it in steps (press `Enter` to progress);
 - additionally, the whole struct is printed to console.
+
+> NOTE:
+> Works best with `--no-default-features`, due to bugs when both `debug` and `alternate-screen` are on.
 
 ### Fast
 
