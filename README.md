@@ -53,7 +53,7 @@ rm -r chip8-rust
 
 Except test ROMs, which are `ibm_logo.ch8` and `test_opcode.ch8`, this project does not provide any games and demos.
 
-Should you wish to run other **.ch8** ROMs, I leave links to them:
+Should you wish to run other **.ch8** ROMs, here are a few links:
 
 - *https://github.com/kripod/chip8-roms* - kripod's repo of roms
 - *https://archive.org/details/chip-8-games* - you can guess
