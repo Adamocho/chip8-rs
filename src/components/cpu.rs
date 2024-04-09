@@ -243,7 +243,10 @@ impl Cpu {
                     ycoord += 1;
                     if ycoord >= HEIGHT as u8 { break; }
                 }
-                self.display.print_to_console();
+
+                if !cfg!(feature = "window") {
+                    self.display.print_to_console();
+                }
                 operation_type = "Display";
             }
             (0xE, _, 0x9, 0xE) => {

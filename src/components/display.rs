@@ -1,6 +1,7 @@
 use std::io::Write;
 
 use crossterm::{style::Print, cursor::MoveTo };
+use minifb::{Window, WindowOptions};
 
 pub const WIDTH: usize = 64;
 pub const HEIGHT: usize = 32;
@@ -18,7 +19,7 @@ impl Default for Display {
 impl Display {
     pub fn new() -> Self {
         Display {
-            memory : [false; WIDTH * HEIGHT]
+            memory : [false; WIDTH * HEIGHT],
         }
     }
 
@@ -51,6 +52,36 @@ impl Display {
 
         // Make changes visible on the screen
         stdout.flush().unwrap();
+    }
+
+    pub fn get_screen_buffer(&self) -> [u32; WIDTH * HEIGHT] {
+        let on: u32 = 0xFF_FF_FF_FF;
+        let off: u32 = 0x0;
+
+        self.memory.map(|pixel| if pixel { on } else { off })
+    }
+
+    pub fn create_window() -> Window {
+        let mut window = Window::new(
+            "Chip8 - Rust",
+            self::WIDTH,
+            self::HEIGHT,
+            WindowOptions {
+                scale: minifb::Scale::X8,
+                borderless: false,
+                title: true,
+                resize: true,
+                scale_mode: minifb::ScaleMode::Stretch,
+                topmost: true,
+                transparency: false,
+                none: false,
+            },
+        ).unwrap();
+
+        window.set_position(20, 20);
+        window.limit_update_rate(Some(std::time::Duration::from_millis(16)));
+
+        window
     }
 }
 
