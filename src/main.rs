@@ -1,6 +1,7 @@
 mod components;
-use crate::components::cpu::Cpu;
-use std::{time::Duration, io};
+use crate::components::{cpu::Cpu, display};
+use std::{io, time::Duration};
+use components::display::Display;
 use crossterm::{
     style::{style, Stylize, StyledContent}, 
     terminal::{self, LeaveAlternateScreen, EnterAlternateScreen, EnableLineWrap}, 
@@ -73,30 +74,44 @@ fn main() {
     cpu.load_program(rom);
 
 
-    let mut _stdout = io::stdout();
+    let mut stdout = io::stdout();
 
     // main game loop inside an alternate screen
     if cfg!(feature = "alternate-screen") {
         terminal::enable_raw_mode().unwrap();
         crossterm::execute!(
-            _stdout, 
+            stdout, 
             EnterAlternateScreen,
             EnableLineWrap,
         ).unwrap();
     }
 
-    loop {
-        cpu.execute_cycle();
+    if cfg!(all(feature = "window", not(feature = "debug"))) {
+        let mut window = Display::create_window();
 
-        if !cfg!(feature = "fast") {
-            // simulate 60hz
-            std::thread::sleep(Duration::new(0, 16_000_000));
+        while window.is_open() && !window.is_key_down(minifb::Key::Escape) {
+            cpu.execute_cycle();
+
+            let buffer = cpu.display.get_screen_buffer();
+
+            window
+                .update_with_buffer(&buffer, display::WIDTH, display::HEIGHT)
+                .unwrap();
         }
-
-        // Check for Ctrl-C
-        if event::poll(Duration::from_secs(0)).unwrap() {
-            if let Event::Key(KeyEvent { code: KeyCode::Char('c'), modifiers: KeyModifiers::CONTROL, .. }) = event::read().unwrap() {
-                break
+    } else {
+        loop {
+            cpu.execute_cycle();
+    
+            if !cfg!(feature = "fast") {
+                // simulate 60hz
+                std::thread::sleep(Duration::new(0, 16_000_000));
+            }
+    
+            // Check for Ctrl-C
+            if event::poll(Duration::from_secs(0)).unwrap() {
+                if let Event::Key(KeyEvent { code: KeyCode::Char('c'), modifiers: KeyModifiers::CONTROL, .. }) = event::read().unwrap() {
+                    break
+                }
             }
         }
     }
@@ -105,7 +120,7 @@ fn main() {
     if cfg!(feature = "alternate-screen") {
         terminal::disable_raw_mode().unwrap();
         crossterm::execute!(
-            _stdout,
+            stdout,
             LeaveAlternateScreen,
         ).unwrap();
     }

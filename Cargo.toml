@@ -7,11 +7,13 @@ edition = "2021"
 [dependencies]
 inquire = "0.5.3"
 crossterm = "0.25.0"
+minifb = "0.25.0"
 
 [features]
-default = ["alternate-screen"]
+default = ["window"]
 debug = []
 fast = []
 alternate-screen = []
+window = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
