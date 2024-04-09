@@ -7,7 +7,9 @@
 - [Installation](#installation)
 - [Uninstalling](#uninstalling)
 - [Getting ROMs](#getting-roms)
-- [Bonus features](#features)
+- [Features](#features)
+    - [Window](#window)
+    - [Alternate-screen](#alternate-screen)
     - [Debug](#debug)
     - [Fast](#fast)
 
@@ -21,8 +23,9 @@ Resources used:
 *Hope this will encourage you to write one entirely on your own!*
 
 ## Requirements
-- [`crossterm`](https://crates.io/crates/inquire) - cross-platform terminal manipulation library
-- [`inquire`](https://crates.io/crates/crossterm) - interactive terminal prompts library
+- [**crossterm**](https://crates.io/crates/inquire) - cross-platform terminal manipulation library
+- [**inquire**](https://crates.io/crates/crossterm) - interactive terminal prompts library
+- [**minifb**](https://crates.io/crates/minifb) - barebones window setup with bitmap rendering
 
 > **NOTE:** Because those libraries are cross-platform, the whole package should work on any system you please.
 
@@ -63,15 +66,25 @@ The internet is full of ROMs worth trying out. I shan't take the creators' credi
 
 ## Features
 
-> Both `--feature` and `-F` are the exact same flag.
-
-Activate a feature/s using
+Activate a feature/s using:
 
 ```bash
 cargo run --feature [NAME1] [NAME2] [...]
 # OR
 cargo run -F [NAME1] [NAME2] [...]
 ```
+
+Available features are listed in `Cargo.toml`.
+
+### Window
+
+This feature is enabled by default. It creates a window, where all the magic takes place.
+
+Quit by pressing the `Esc` key.
+
+### Alternate-screen
+
+Another way of rendering. It uses crossterm to create a virtual window, just like vim. The old screen is restored upon quitting (usually `Ctrl-C`).
 
 ### Debug
 
@@ -83,8 +96,11 @@ Enabling the feature:
 - additionally, the whole struct is printed to console.
 
 > NOTE:
-> Works best with `--no-default-features`, due to bugs when both `debug` and `alternate-screen` are on.
+> Works best with `--no-default-features`, due to bugs when both `debug` and `default`|`window`|`alternate-screen` are on.
 
 ### Fast
 
 Ignores the 60Hz *(60 per sec)* opcode processing limitation.
+
+> NOTE: 
+> Works only for a terminal-based output.
