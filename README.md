@@ -7,7 +7,7 @@
 - [Installation](#installation)
 - [Uninstalling](#uninstalling)
 - [Getting ROMs](#getting-roms)
-- [Bonus features](#bonus-features)
+- [Bonus features](#features)
     - [Debug](#debug)
     - [Fast](#fast)
 
@@ -61,7 +61,7 @@ Should you wish to run other **.ch8** ROMs, I leave links to them:
 
 The internet is full of ROMs worth trying out. I shan't take the creators' credits.
 
-## Bonus features 
+## Features
 
 > Both `--feature` and `-F` are the exact same flag.
 
