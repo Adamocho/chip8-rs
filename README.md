@@ -7,11 +7,13 @@
 - [Installation](#installation)
 - [Uninstalling](#uninstalling)
 - [Getting ROMs](#getting-roms)
+    - [Work Showcase](#work-showcase)
 - [Features](#features)
     - [Window](#window)
     - [Alternate-screen](#alternate-screen)
     - [Debug](#debug)
     - [Fast](#fast)
+- [Changing colors](#changing-colors)
 
 ## Origins and reasoning
 A friend of mine told me into writing an emulator like CHIP-8, which proved to be a challenge alongside an epic adventure! I chose Rust because it is fast, reliable and guarantees memory safety, to name a few.
@@ -109,3 +111,20 @@ Ignores the 60Hz *(60 per sec)* opcode processing limitation.
 
 > NOTE: 
 > Works only for a terminal-based output.
+
+## Changing colors
+
+Ever dreamed about changing the default black-and-white colorscheme?
+Change `CHIP8-ON` and `CHIP8-OFF` according to your taste!
+
+```sh
+# Fast and simple
+export CHIP8-ON='123000456'
+export CHIP8-OFF='87123000456'
+
+# And now execute the application to see the changes in action
+cargo run
+```
+
+By far this is a very minimalistic setup.
+Should you need anything fancier, please submit an issue with a feature request.
