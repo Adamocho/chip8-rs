@@ -1,10 +1,12 @@
-use std::io::Write;
+use std::{env, io::Write};
 
 use crossterm::{style::Print, cursor::MoveTo };
 use minifb::{Window, WindowOptions};
 
 pub const WIDTH: usize = 64;
 pub const HEIGHT: usize = 32;
+pub const ON: u32 = 0xFF_FF_FF_FF;
+pub const OFF: u32 = 0x0;
 
 pub struct Display {
     pub memory: [bool; WIDTH * HEIGHT],
@@ -54,9 +56,25 @@ impl Display {
         stdout.flush().unwrap();
     }
 
+    /// # Examples
+    /// 
+    /// ```sh
+    /// # Set env variables
+    /// $   export CHIP8_ON='170000040'
+    ///
+    /// $   export CHIP8_ON='16711400'
+    /// 
+    /// # And then..
+    /// $   cargo run
+    /// ```
     pub fn get_screen_buffer(&self) -> [u32; WIDTH * HEIGHT] {
-        let on: u32 = 0xFF_FF_FF_FF;
-        let off: u32 = 0x0;
+        let on: u32 = if let Ok(val) = env::var("CHIP8_ON") {
+            val.parse().unwrap_or(ON)
+        } else { ON };
+
+        let off: u32 = if let Ok(val) = env::var("CHIP8_OFF") {
+            val.parse().unwrap_or(OFF)
+        } else { OFF };
 
         self.memory.map(|pixel| if pixel { on } else { off })
     }
