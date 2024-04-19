@@ -54,15 +54,20 @@ rm -r chip8-rust
 
 ## Getting ROMs
 
-Except test ROMs, which are `ibm_logo.ch8` and `test_opcode.ch8`, this project does not provide any games and demos.
+This repo provides just a few test ROMs purely for testing purposes, among which are `ibm_logo.ch8` and `test_opcode.ch8` most iconic. This project does not provide neither games nor demos.
 
 Should you wish to run other **.ch8** ROMs, here are a few links:
 
-- *https://github.com/kripod/chip8-roms* - kripod's repo of roms
+- *https://github.com/kripod/chip8-roms* - kripod's repo of ROMs
 - *https://archive.org/details/chip-8-games* - you can guess
 - *https://github.com/tobiasvl/awesome-chip-8* - another repo (by tobiasvl)
 
-The internet is full of ROMs worth trying out. I shan't take the creators' credits.
+The Internet is full of ROMs worth trying out.
+
+## Work showcase
+
+The `img/` directory contains a few showcases of working test **.ch8** files.
+They are 1920x1080, so you can have a cool wallpaper out of them.
 
 ## Features
 
