@@ -8,25 +8,25 @@ use super::keypad::Keypad;
 use super::rand::DoomRNG;
 
 pub struct Cpu {
-    // index register
+    /// index register
     pub i: u16,
-    // program counter
+    /// program counter
     pub pc: u16,
-    // memory
+    /// memory
     pub memory: [u8; 4096],
-    // registers
+    /// registers
     pub v: [u8; 16],
-    // stack
+    /// stack
     pub stack: Vec<u16>,
-    // delay timer
+    /// delay timer
     pub dt: u8,
-    // sound timer
+    /// sound timer
     pub st: u8,
-    // display
+    /// display
     pub display: Display,
-    // keypad
+    /// keypad
     pub keypad: Keypad,
-    // random number generator - DOOM implementation
+    /// random number generator - DOOM implementation
     pub random: DoomRNG,
 }
 
@@ -80,14 +80,19 @@ impl Cpu {
     pub fn execute_cycle(&mut self) {
         let opcode = read_opcode(self.memory, self.pc);
         self.pc += 2;
-        self.process_opcode(opcode);
+        let (_operation_code, _operation_type)  = self.process_opcode(opcode);
+
+        if cfg!(all(feature = "debug", not(feature = "alternate-screen"))) {
+            todo!("Cannot borrow the Cpu struct twice!");
+            // Self::display_debug(cpu, operation_code, operation_type);
+        }
 
         // decrease both timers
         if self.st > 0 { self.st >>= 1 };
         if self.dt > 0 { self.dt >>= 1 };
     }
 
-    fn process_opcode(&mut self, opcode: u16)  {
+    fn process_opcode(&mut self, opcode: u16) -> (u16, &str) {
 
         let x = ((opcode & 0x0F00) >> 8) as usize;
         let y = ((opcode & 0x00F0) >> 4) as usize;
@@ -97,7 +102,6 @@ impl Cpu {
         let kk = (opcode & 0x00FF) as u8;
         let nnn = opcode & 0x0FFF;
 
-        // break up into nibbles
         let op_1 = (opcode & 0xF000) >> 12;
         let op_2 = (opcode & 0x0F00) >> 8;
         let op_3 = (opcode & 0x00F0) >> 4;
@@ -224,25 +228,7 @@ impl Cpu {
                 operation_type = "Rand";
             }
             (0xD, _, _, _) => {
-                self.v[0xF] = 0;
-
-                let mut xcoord = vx % WIDTH as u8;
-                let mut ycoord = vy % HEIGHT as u8;
-
-                for voffset in 0..n {
-                    let sprite: u8 = self.memory[(self.i + voffset) as usize];
-                    for hoffset in 0..8 {
-                        if (sprite & (0b10000000 >> hoffset)) != 0 {
-                            self.v[0xF] |= self.display.draw(xcoord, ycoord) as u8;
-                        }
-                        xcoord += 1;
-                        if xcoord >= WIDTH as u8 { break; }
-                    }
-                    xcoord = vx % WIDTH as u8;
-                    
-                    ycoord += 1;
-                    if ycoord >= HEIGHT as u8 { break; }
-                }
+                self.v[0xF] = self.screen_sprite(vx, vy, n);
 
                 if !cfg!(feature = "window") {
                     self.display.print_to_console();
@@ -305,36 +291,58 @@ impl Cpu {
             }
             (_, _, _, _) => ()
         }
+        (opcode, operation_type)
+    }
 
-        if cfg!(all(feature = "debug", not(feature = "alternate-screen"))) {
-            let opcode_styled: StyledContent<String>;
-            let optype_styled: StyledContent<String>;
+    fn display_debug(cpu: Cpu, operation_code: u16, operation_type: &str) {
+        let opcode_styled: StyledContent<String>;
+        let optype_styled: StyledContent<String>;
+        let mut output_color = crossterm::style::Color::Green;
 
-            let cpu_styled: StyledContent<String> = crossterm::style::style(format!("\ti={:?},\n\tpc={:?},\n\tv={:?},\n\tstack={:?},\n\tdt={:?},\n\tst={:?}",
-            self.i, self.pc, self.v, self.stack, self.dt, self.st)).with(crossterm::style::Color::DarkYellow);
+        let cpu_styled: StyledContent<String> = crossterm::style::style(format!("\ti={:?},\n\tpc={:?},\n\tv={:?},\n\tstack={:?},\n\tdt={:?},\n\tst={:?}",
+        cpu.i, cpu.pc, cpu.v, cpu.stack, cpu.dt, cpu.st)).with(crossterm::style::Color::DarkYellow);
 
-            if operation_type == "Unknown" {
-                opcode_styled = crossterm::style::style(format!("{:04X}", opcode)).with(crossterm::style::Color::Red);
-                optype_styled = crossterm::style::style(operation_type.to_string()).with(crossterm::style::Color::Red);
-            } else {
-                opcode_styled = crossterm::style::style(format!("{:04X}", opcode)).with(crossterm::style::Color::Green);
-                optype_styled = crossterm::style::style(operation_type.to_string()).with(crossterm::style::Color::Green);
+        if operation_type == "Unknown" {
+            output_color = crossterm::style::Color::Red;
+        }                
+        opcode_styled = crossterm::style::style(format!("{:04X}", operation_code)).with(output_color);
+        optype_styled = crossterm::style::style(operation_type.to_string()).with(output_color);
+        
+        let mut stdout = std::io::stdout();
+        
+        crossterm::queue!(stdout,
+            MoveTo(0, 60),
+            PrintStyledContent(opcode_styled),
+            PrintStyledContent(optype_styled),
+            PrintStyledContent(cpu_styled),
+        ).unwrap();
+        stdout.flush().unwrap();
+        
+        // Await key press
+        let _ = std::io::stdin().read_line(&mut String::new());
+    }
+
+    fn screen_sprite(&mut self, register_x: u8, register_y: u8, first_char: u16) -> u8 {
+        let mut overflow_flag: u8 = 0;
+
+        let mut xcoord = register_x % WIDTH as u8;
+        let mut ycoord = register_y % HEIGHT as u8;
+
+        for voffset in 0..first_char {
+            let sprite: u8 = self.memory[(self.i + voffset) as usize];
+            for hoffset in 0..8 {
+                if (sprite & (0b10000000 >> hoffset)) != 0 {
+                    overflow_flag |= self.display.draw(xcoord, ycoord) as u8;
+                }
+                xcoord += 1;
+                if xcoord >= WIDTH as u8 { break; }
             }
-                
+            xcoord = register_x % WIDTH as u8;
             
-            let mut stdout = std::io::stdout();
-            
-            crossterm::queue!(stdout,
-                MoveTo(0, 60),
-                PrintStyledContent(opcode_styled),
-                PrintStyledContent(optype_styled),
-                PrintStyledContent(cpu_styled),
-            ).unwrap();
-            stdout.flush().unwrap();
-            
-            // Await key press
-            let _ = std::io::stdin().read_line(&mut String::new());
+            ycoord += 1;
+            if ycoord >= HEIGHT as u8 { break; }
         }
+        overflow_flag
     }
 }
 
