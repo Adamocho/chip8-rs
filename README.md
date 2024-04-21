@@ -13,6 +13,7 @@
     - [Alternate-screen](#alternate-screen)
     - [Debug](#debug)
     - [Fast](#fast)
+    - [Drawing](#drawing)
 - [Changing colors](#changing-colors)
 
 ## Origins and reasoning
@@ -111,6 +112,14 @@ Ignores the 60Hz *(60 per sec)* opcode processing limitation.
 
 > NOTE: 
 > Works only for a terminal-based output.
+
+### Drawing
+
+Allows for drawing on screen using the cursor (`window` feature required).
+
+1. Drawing **on** pixels - press the *LMB*
+
+2. In order to draw **off** pixel press the *RMB*
 
 ## Changing colors
 
