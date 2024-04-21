@@ -92,6 +92,23 @@ fn main() {
         while window.is_open() && !window.is_key_down(minifb::Key::Escape) {
             cpu.execute_cycle();
 
+            if cfg!(feature = "drawing") {
+                let (w_width, w_heigth) = window.get_size();
+                let width_scale: f32 = w_width as f32 / display::WIDTH as f32;
+                let height_scale: f32 = w_heigth as f32 / display::HEIGHT as f32;
+
+                window.get_unscaled_mouse_pos(minifb::MouseMode::Discard).map(|mouse| {
+                    let x_coord = (mouse.0 / width_scale).floor() as usize;
+                    let y_coord = (mouse.1 / height_scale).floor() as usize;
+
+                    if window.get_mouse_down(minifb::MouseButton::Left) {
+                        cpu.display.memory[x_coord + y_coord * display::WIDTH] = true;
+                    } else if window.get_mouse_down(minifb::MouseButton::Right) {
+                        cpu.display.memory[x_coord + y_coord * display::WIDTH] = false;
+                    }
+                });
+            }
+
             let buffer = cpu.display.get_screen_buffer();
 
             window
