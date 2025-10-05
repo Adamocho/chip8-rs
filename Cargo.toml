@@ -8,6 +8,7 @@ edition = "2021"
 inquire = "0.5.3"
 crossterm = "0.25.0"
 minifb = "0.25.0"
+pkg-config = "0.3.32"
 
 [features]
 default = ["window"]

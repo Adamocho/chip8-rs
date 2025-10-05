@@ -15,6 +15,7 @@
     - [Fast](#fast)
     - [Drawing](#drawing)
 - [Changing colors](#changing-colors)
+- [Debugging](#debugging)
 
 ## Origins and reasoning
 A friend of mine told me into writing an emulator like CHIP-8, which proved to be a challenge alongside an epic adventure! I chose Rust because it is fast, reliable and guarantees memory safety, to name a few.
@@ -44,6 +45,9 @@ git clone --depth 1 https://github.com/Adamocho/chip8-rust.git
 *cd* inside; build and execute
 ```bash
 cd chip8-rust
+
+# build nix-shell environment with libX11 linked
+nix-shell
 
 cargo run
 ```
@@ -137,3 +141,12 @@ cargo run
 
 By far this is a very minimalistic setup.
 Should you need anything fancier, please submit an issue with a feature request.
+
+
+## Debugging
+
+In case there is an SCCACHE problem with creating TMP directories:
+
+Use `sccache -z; sccache --stop-server; sccache --start-server` to restart the server and you should be golden.
+
+
