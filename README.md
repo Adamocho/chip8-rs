@@ -96,7 +96,7 @@ Quit by pressing the `Esc` key.
 
 ### Alternate-screen
 
-Another way of rendering. It uses crossterm to create a virtual window, just like vim. The old screen is restored upon quitting (usually `Ctrl-C`).
+Another way of rendering. It uses crossterm to create a virtual window, just like vim. The old screen is restored upon quitting (usually `Ctrl-C` or `Esc`).
 
 ### Debug
 
@@ -128,12 +128,16 @@ Allows for drawing on screen using the cursor (`window` feature required).
 ## Changing colors
 
 Ever dreamed about changing the default black-and-white colorscheme?
-Change `CHIP8-ON` and `CHIP8-OFF` according to your taste!
+Change `CHIP8_ON` and `CHIP8_OFF` according to your taste!
 
 ```sh
 # Fast and simple
-export CHIP8-ON='123000456'
-export CHIP8-OFF='87123000456'
+export CHIP8_ON='123000456'
+export CHIP8_OFF='87123000456'
+
+# Or with using HEX
+export CHIP8_ON=$((0xcc2936))
+export CHIP8_OFF=$$((0x6667ab))
 
 # And now execute the application to see the changes in action
 cargo run
