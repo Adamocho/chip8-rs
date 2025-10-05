@@ -97,8 +97,9 @@ impl Display {
         ).unwrap();
 
         window.set_position(20, 20);
-        window.limit_update_rate(Some(std::time::Duration::from_millis(16)));
-
+        // do not set a framerate limit for the display
+        // but rather do it for the CPU
+        window.limit_update_rate(None);
         window
     }
 }

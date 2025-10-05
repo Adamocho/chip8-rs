@@ -120,8 +120,8 @@ fn main() {
             cpu.execute_cycle();
     
             if !cfg!(feature = "fast") {
-                // simulate 60hz
-                std::thread::sleep(Duration::new(0, 16_000_000));
+                // simulate 60hz on the CPU
+                std::thread::sleep(Duration::new(5, 0));
             }
     
             // Check for Ctrl-C
