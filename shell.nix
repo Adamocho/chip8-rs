@@ -22,17 +22,6 @@ pkgs.mkShell rec {
 
     xorg.libX11
     xorg.libXcursor
-    xorg.libXrandr
-    xorg.libXi
-
-    shaderc
-    directx-shader-compiler
-    libGL
-    vulkan-headers
-    vulkan-loader
-    vulkan-tools
-    vulkan-tools-lunarg
-    vulkan-validation-layers
   ];
 
   shellHook = ''
